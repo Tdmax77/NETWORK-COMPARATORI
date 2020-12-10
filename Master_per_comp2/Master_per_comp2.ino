@@ -1,19 +1,4 @@
-/*
- Copyright (C) 2012 James Coliz, Jr. <maniacbug@ymail.com>
-
- This program is free software; you can redistribute it and/or
- modify it under the terms of the GNU General Public License
- version 2 as published by the Free Software Foundation.
- 
- Update 2014 - TMRh20
- */
-
-/**
- * Simplest possible example of using RF24Network,
- *
- * RECEIVER NODE
- * Listens for messages from the transmitter and prints them out.
- */
+/*master per progetto comparatori radio con NRF24Network*/
 
 #include <RF24Network.h>
 #include <RF24.h>
@@ -42,6 +27,10 @@ void setup(void)
   SPI.begin();
   radio.begin();
   network.begin(/*channel*/ 90, /*node address*/ this_node);
+
+   // RF24Module
+   //radio.setDataRate(RF24_2MBPS);
+   // RF24Module
 }
 
 void loop(void){
@@ -55,7 +44,7 @@ void loop(void){
     payload_t payload;
     network.read(header,&payload,sizeof(payload));
     Serial.print("Received packet ");
-    Serial.print(payload.num_sent);
+    Serial.println(payload.num_sent);
 
   }
 }
