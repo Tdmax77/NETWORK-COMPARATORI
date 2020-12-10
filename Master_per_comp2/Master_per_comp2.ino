@@ -3,7 +3,7 @@
 #include <RF24Network.h>
 #include <RF24.h>
 #include <SPI.h>
-
+#define DEBUG
 
 RF24 radio(10,9);                // nRF24L01(+) radio attached using Getting Started board 
 
@@ -21,9 +21,10 @@ struct payload_t {                 // Structure of our payload
 
 void setup(void)
 {
-  Serial.begin(115200);
-  Serial.println("RF24Network/examples/helloworld_rx/");
- 
+  Serial.begin(38400);
+  #ifdef DEBUG
+  Serial.println("Ricevitore v0.1");
+  #endif
   SPI.begin();
   radio.begin();
   network.begin(/*channel*/ 90, /*node address*/ this_node);
@@ -43,8 +44,15 @@ void loop(void){
     RF24NetworkHeader header;        // If so, grab it and print it out
     payload_t payload;
     network.read(header,&payload,sizeof(payload));
-    Serial.print("Received packet ");
-    Serial.println(payload.num_sent);
+    #ifdef DEBUG
+    Serial.print("Received ");
+    Serial.print(payload.num_sent);
+    Serial.print(" from ");
+    Serial.println(header.from_node);
+    #endif
+
+    
+    
 
   }
 }
