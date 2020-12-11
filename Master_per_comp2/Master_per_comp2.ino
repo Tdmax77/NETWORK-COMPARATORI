@@ -3,7 +3,7 @@
 #include <RF24Network.h>
 #include <RF24.h>
 #include <SPI.h>
-#define DEBUG
+//#define DEBUG
 
 RF24 radio(10,9);                // nRF24L01(+) radio attached using Getting Started board 
 
@@ -13,6 +13,11 @@ const uint16_t node_1 = 01;   // Address of the other node in Octal format
 const uint16_t node_2 = 02;   // Address of the other node in Octal format
 const uint16_t node_3 = 03;   // Address of the other node in Octal format
 const uint16_t node_4 = 04;   // Address of the other node in Octal format
+
+int lettura_1 = 8888;
+int lettura_2 = 8888;
+int lettura_3 = 8888;
+int lettura_4 = 8888;
 
 struct payload_t {                 // Structure of our payload
   int num_sent;
@@ -51,8 +56,28 @@ void loop(void){
     Serial.println(header.from_node);
     #endif
 
-    
-    
+   switch (header.from_node){
+     case 01:
+     lettura_1 = payload.num_sent;
+     break;
+     case 02:
+     lettura_2 = payload.num_sent;
+     break;
+     case 03:
+     lettura_3 = payload.num_sent;
+     break;
+     case 04:
+     lettura_4 = payload.num_sent;
+     break;
+     
+   }
 
+    Serial.print(lettura_1);
+    Serial.print(",");
+    Serial.print(lettura_2);
+    Serial.print(",");
+    Serial.print(lettura_3);
+    Serial.print(",");
+    Serial.println(lettura_4);
   }
 }
