@@ -16,7 +16,7 @@
 #include <RF24.h>
 #include <SPI.h>
 #include <printf.h>
-#define DEBUG  //<<--- DECOMMENTARE SE NECESSARIO
+//#define DEBUG  //<<--- DECOMMENTARE SE NECESSARIO
 //#define TASTIERA //<<--- DECOMMENTARE SE NECESSARIO
 
 
@@ -35,10 +35,11 @@ int sign;
 // variabili network *********************************************
 RF24 radio(10, 9);     // RF_NANO radio (pin fissi cablati sulla scheda)
 RF24Network network(radio);          // Network uses that radio
-const uint16_t this_node = 02;        // Address of our node in Octal format <<-- INSERIRE IL NUMERO DEL COMPARATORE
+const uint16_t this_node = 04;        // Address of our node in Octal format <<-- INSERIRE IL NUMERO DEL COMPARATORE
 const uint16_t other_node = 00;       // Address of the other node in Octal format
 struct payload_t {                  // Structure of our payload
   int num_sent;
+  int alive;
 };
 payload_t pl;
 // variabili network *********************************************
@@ -50,8 +51,8 @@ char tasto = 0;
 // variabili debug ***********************************************
 
 // variabili per invio temporizzato ******************************
-unsigned long previousMillis = 0;        // registra invio 
-unsigned long interval = 5000;           // intervallo impostato 
+unsigned long previousMillis = 0;        // registra invio
+unsigned long interval = 5000;           // intervallo impostato
 
 // variabili per invio temporizzato ******************************
 
@@ -70,13 +71,9 @@ void setup() {
   network.begin(/*channel*/ 90, /*node address*/ this_node);
   // setting per network *****************************************
 
-  // RF24Module
-  // radio.setDataRate(RF24_2MBPS);
-  // RF24Module
-
   // Debug *******************************************************
 #ifdef DEBUG
-  Serial.begin(115200);
+  Serial.begin(38400);
   printf_begin();
   radio.printDetails();
 #endif
@@ -86,7 +83,7 @@ void setup() {
 #endif
 
 #ifdef TASTIERA
-  Serial.begin(115200);
+  Serial.begin(38400);
   printf_begin();
 #endif
 
@@ -95,6 +92,8 @@ void setup() {
 #endif
 
   // Debug *******************************************************
+
+  Serial.begin(38400);
 }
 
 
@@ -109,7 +108,87 @@ void loop() {
   tastiera();
 #endif
 
-  // parte MITUTOYO *************************************************************
+
+ //read_mitutoyo();
+ num++;
+ if (num > 10000){
+  num = 0;
+ }
+  pl.num_sent = num; // metto il valore del mitutoyo nella variabile da spedire
+  pl.alive= pl.alive +1;
+#ifdef DEBUG
+  Serial.print("Valore letto da Comp");
+  Serial.print(this_node);
+  Serial.print(" ");
+  Serial.print(pl.num_sent);
+  Serial.print(" variabile alive ");
+  Serial.println(pl.alive);
+#endif
+
+  network.update();                          // Check the network regularly
+  invio_dati();
+  while ( network.available() ) {     // Is there any incoming data?
+    int alive;
+    RF24NetworkHeader header2;
+    network.read(header2, &alive, sizeof(alive));
+    Serial.println(alive);
+  }
+
+}
+
+//== == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == ==
+//== == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == ==
+//== == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == ==
+//== == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == ==
+//== == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == ==
+//== == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == ==
+
+
+
+void invio_dati() {
+
+#ifdef DEBUG
+  Serial.print("Sending...");
+#endif
+  RF24NetworkHeader header(/*to node*/ other_node);
+  bool ok = network.write(header, &pl, sizeof(pl));
+#ifdef DEBUG
+  if (ok)
+    Serial.println("ok.");
+  else
+    Serial.println("failed.");
+#endif
+  num_prec = num;
+}
+
+
+
+
+
+void tastiera() {
+#ifdef TASTIERA
+  tasto = Serial.read();
+  switch (tasto) {
+    case 'a':
+      num++;
+      Serial.print("valore di num  ");
+      Serial.println(num);
+      break;
+    case 's':
+      num--;
+      Serial.print("valore di num  ");
+      Serial.println(num);
+      break;
+  }
+#endif
+}
+
+
+
+
+
+
+void read_mitutoyo() {
 
   digitalWrite(req, HIGH);      // genera set request portando il pin 11 a HIGH
   for (i = 0; i < 13; i++ ) {
@@ -139,71 +218,4 @@ void loop() {
     }
   }
 
-  // parte MITUTOYO *************************************************************
-
-  pl.num_sent = num; // metto il valore del mitutoyo nella variabile da spedire
-
-#ifdef DEBUG
-  Serial.print("Valore letto da Comp");
-  Serial.print(this_node);
-  Serial.print(" ");
-  Serial.println(pl.num_sent);
-#endif
-
-  // refresh temporizzato: invio il dato letto una volta ogni tot tempo (interval) per avere la lettura aggiornata senza congestionare il traffico
-  unsigned long currentMillis = millis();
-  if (currentMillis - previousMillis > interval) {
-    previousMillis = currentMillis;
-    invio_dati();
-  }
-  // refresh temporizzato ***************************************
-
-  // scrittura su network ***************************************
-  network.update();                          // Check the network regularly
-  if (pl.num_sent != num_prec) {             // se il valore di num e quindi di num_sent cambia ovvero sto leggendo, spedisco
-    invio_dati();
-  }
-  // scrittura su network ***************************************
-
-}
-
-
-
-
-
-
-void invio_dati() {
-
-#ifdef DEBUG
-  Serial.print("Sending...");
-#endif
-  RF24NetworkHeader header(/*to node*/ other_node);
-  bool ok = network.write(header, &pl, sizeof(pl));
-#ifdef DEBUG
-  if (ok)
-    Serial.println("ok.");
-  else
-    Serial.println("failed.");
-#endif
-  num_prec = num;
-}
-
-
-
-void tastiera() {
-#ifdef TASTIERA
-  tasto = Serial.read();
-  switch (tasto) {
-    case 'a':
-      num++;
-      Serial.print("valore di num  ");
-      Serial.println(num);
-      break;
-    case 's':
-      num--;
-      Serial.print("valore di num  ");
-      Serial.println(num);
-      break;
-  }
-#endif
 }
