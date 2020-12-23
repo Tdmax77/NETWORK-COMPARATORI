@@ -3,7 +3,8 @@
 #include <RF24Network.h>
 #include <RF24.h>
 #include <SPI.h>
-#define DEBUG
+
+//#define DEBUG
 
 RF24 radio(10, 9);               // nRF24L01(+) radio attached using Getting Started board
 
@@ -50,7 +51,28 @@ void setup(void)
 
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void loop(void) {
+
+  control_1o = control_1;
+  control_2o = control_2;
+  control_3o = control_3;
+  control_4o = control_4;
 
 
 #ifdef DEBUG
@@ -64,22 +86,26 @@ void loop(void) {
 
   while ( network.available() ) {     // Is there anything ready for us?
 #ifdef DEBUG
-  Serial.println("check 22 sono nel loop del network available");
+    Serial.println("check 22 sono nel loop del network available");
 #endif DEBUG
-    
-    control_1o = control_1;
-    control_2o = control_2;
-    control_3o = control_3;
-    control_4o = control_4;
-    #ifdef DEBUG
-  Serial.println("check 24 ho impostato le variabili di controllo all'ultimo valore");
+
+ //   control_1o = control_1;
+  //  control_2o = control_2;
+ //   control_3o = control_3;
+//    control_4o = control_4;
+#ifdef DEBUG
+    Serial.println("check 24 ho impostato le variabili di controllo all'ultimo valore");
 #endif DEBUG
-    
+
 #ifdef DEBUG
     Serial.println("check 30 net available");
 #endif DEBUG
     RF24NetworkHeader header;        // If so, grab it and print it out
     payload_t payload;
+
+
+
+    
     network.read(header, &payload, sizeof(payload));
 #ifdef DEBUG
     Serial.println("check 40 ho letto il payload ");
@@ -87,7 +113,9 @@ void loop(void) {
 
 
     switch (header.from_node) {
-      case 01:
+
+
+      case 01: //=============================================================================================
         lettura_1 = payload.num_sent;
 #ifdef DEBUG
         Serial.println("check 50 HO LETTO IL DATO  1");
@@ -97,7 +125,9 @@ void loop(void) {
         Serial.println("check 60 HO LETTO LA VARIABILE CONTATORE  1");
 #endif DEBUG
         break;
-      case 02:
+
+
+      case 02: //=============================================================================================
         lettura_2 = payload.num_sent;
 #ifdef DEBUG
         Serial.println("check 70 HO LETTO IL DATO  2");
@@ -107,7 +137,9 @@ void loop(void) {
         Serial.println("check 80 HO LETTO LA VARIABILE CONTATORE  2");
 #endif DEBUG
         break;
-      case 03:
+
+
+      case 03: //=============================================================================================
         lettura_3 = payload.num_sent;
 #ifdef DEBUG
         Serial.println("check 90 HO LETTO IL DATO  3");
@@ -117,7 +149,9 @@ void loop(void) {
         Serial.println("check 100 HO LETTO LA VARIABILE CONTATORE  3");
 #endif DEBUG
         break;
-      case 04:
+
+
+      case 04: //=============================================================================================
         lettura_4 = payload.num_sent;
 #ifdef DEBUG
         Serial.println("check 90 HO LETTO IL DATO  4");
@@ -137,78 +171,105 @@ void loop(void) {
 
 
 
+// PARTE SOPRA TUTTO OK NON TOCCARE
 
-    if (control_1 != control_1o) {
+
+
+
+    // ENNESIMA PROVA DI CONTROLLO CONCATENATO
+
+    if ((control_1 != control_1o) && (header.from_node == 01)) {
       lettura_1p = lettura_1;
+      raspy();
 #ifdef DEBUG
       Serial.println("check 110 confronto letture 1 e 1p");
 #endif DEBUG
-    } else {
+    } else if ((control_1 == control_1o) && (header.from_node == 01)) {
       lettura_1p = 7777;
+      raspy();
+
 #ifdef DEBUG
       Serial.println("check 120 else lettura 1");
 #endif DEBUG
     }
-    if (control_2 != control_2o) {
+
+raspy();
+
+    if ((control_2 != control_2o) && (header.from_node == 02)) {
       lettura_2p = lettura_2;
+      raspy();
+
 #ifdef DEBUG
       Serial.println("check 130 confronto letture 2 e 2p");
 #endif DEBUG
-    } else {
+    } else if ((control_2 == control_2o) && (header.from_node == 02)) {
       lettura_2p = 7777;
+      raspy();
+
 #ifdef DEBUG
       Serial.println("check 140 else lettura 2");
 #endif DEBUG
     }
 
+
+
+
     if (control_3 != control_3o) {
       lettura_3p = lettura_3;
+      control_1++;
+      control_2++;
+      control_4++;
+
 #ifdef DEBUG
       Serial.println("check 150 confronto letture 3 e 3p");
 #endif DEBUG
     } else {
       lettura_3p = 7777;
+      control_1++;
+      control_2++;
+      control_4++;
+
 #ifdef DEBUG
       Serial.println("check 160 else lettura 3");
 #endif DEBUG
     }
 
+
+
+
     if (control_4 != control_4o) {
       lettura_4p = lettura_4;
+      control_1++;
+      control_2++;
+      control_3++;
+
 #ifdef DEBUG
       Serial.println("check 170 confronto letture 4 e 4p");
 #endif DEBUG
     } else {
       lettura_4p = 7777;
+      control_1++;
+      control_2++;
+      control_2++;
+
 #ifdef DEBUG
       Serial.println("check 180 else lettura 4");
 #endif DEBUG
     }
-
-
-
-
-#ifdef DEBUG
-    Serial.println("check 190 stampo i risultati");
-#endif DEBUG
-    Serial.print(lettura_1p);
-    Serial.print(",");
-    Serial.print(lettura_2p);
-    Serial.print(",");
-    Serial.print(lettura_3p);
-    Serial.print(",");
-    Serial.println(lettura_4p);
-#ifdef DEBUG
-    Serial.print(control_1);
-    Serial.print(",");
-    Serial.print(control_2);
-    Serial.print(",");
-    Serial.print(control_3);
-    Serial.print(",");
-    Serial.println(control_4);
-    Serial.println();
-    Serial.println();
-#endif DEBUG
+raspy();
   }
+    
 
+} 
+
+
+
+void raspy() {
+  Serial.print(lettura_1p);
+  Serial.print(",");
+  Serial.print(lettura_2p);
+  Serial.print(",");
+  Serial.print(lettura_3p);
+  Serial.print(",");
+  Serial.println(lettura_4p);
 }

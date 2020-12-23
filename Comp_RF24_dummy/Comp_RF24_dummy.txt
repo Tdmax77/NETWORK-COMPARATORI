@@ -1,0 +1,3 @@
+This is a dummy code that simulates comparator's continuous readings.
+Need it only for test!!!
+Remember to change the node_id !!!

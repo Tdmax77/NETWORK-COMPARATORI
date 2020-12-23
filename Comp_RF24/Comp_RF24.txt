@@ -1,0 +1,2 @@
+This is the code to upload on every node of our net.
+Remember to change the node_id !!!

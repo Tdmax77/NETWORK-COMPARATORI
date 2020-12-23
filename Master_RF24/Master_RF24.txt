@@ -1,0 +1,4 @@
+This is the code for the RF-Nano linked to the raspberry.
+It receives and verify packets and send them to Rpi.
+
+Code doesn't need to be edited.
