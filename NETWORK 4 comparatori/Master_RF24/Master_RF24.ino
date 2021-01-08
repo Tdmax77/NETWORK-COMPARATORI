@@ -52,7 +52,7 @@ const uint16_t node_3 = 03;     // Address of the other node in Octal format    
 const uint16_t node_4 = 04;     // Address of the other node in Octal format            this is COMP_4
 
 struct payload_t {              // Structure of  payload received from slaves
-  int num_sent;                 // this is the data readed from COMP, it is the value readed from Mitutoyo Comparator
+  long num_sent;                 // this is the data readed from COMP, it is the value readed from Mitutoyo Comparator
   int control;                  // this is a control variable that continuously incrases on every data transmission, i need it for to understand if COMP is alive
 };
 

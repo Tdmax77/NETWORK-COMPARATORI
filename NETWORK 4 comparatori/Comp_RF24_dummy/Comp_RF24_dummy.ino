@@ -38,7 +38,7 @@ RF24Network network(radio);          // Network uses that radio
 const uint16_t this_node = 04;        // Address of our node in Octal format <<-- INSERIRE IL NUMERO DEL COMPARATORE
 const uint16_t other_node = 00;       // Address of the other node in Octal format
 struct payload_t {                  // Structure of our payload
-  int num_sent;
+  long num_sent;
   int alive;
 };
 payload_t pl;
