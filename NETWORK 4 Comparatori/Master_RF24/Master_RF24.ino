@@ -61,7 +61,7 @@ const int N_rec (4);      // define number of slaves (receiver = COMP)
 int dummy_val (8888);     // define a value that will be printed if COMP fails
 payload_t data[N_rec];    // create an array data
 int counter [N_rec];      // Array defined for validation of data (ses main loop)
-int Nnosignal (30);       // number of acceptable failed reads
+int Nnosignal (20);       // number of acceptable failed reads
 
 
 
