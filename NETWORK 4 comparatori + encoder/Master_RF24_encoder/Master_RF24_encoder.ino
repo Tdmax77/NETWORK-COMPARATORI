@@ -40,6 +40,13 @@
 #include <RF24.h>
 #include <SPI.h>
 
+//inserimento stringa da terminale per offset
+byte idx;
+char caratteri[8]; // massimo 7 caratteri + lo 0x00 di fine stringa
+int numero;
+//inserimento stringa da terminale per offset
+
+
 //#define DEBUG
 
 RF24 radio(10, 9);               // nRF24L01(+) radio attached using Getting Started board n.b. i can't modify them because of hardware design on modules RF-NANO
@@ -53,9 +60,10 @@ const uint16_t node_4 = 04;     // Address of the other node in Octal format    
 const uint16_t node_5 = 05;     // Address of the encoder node in Octal format          this ins ENCODER
 
 struct payload_t {              // Structure of  payload received from slaves
-  int num_sent;                 // this is the data readed from COMP, it is the value readed from Mitutoyo Comparator
+  long num_sent;                 // this is the data readed from COMP, it is the value readed from Mitutoyo Comparator
   int control;                  // this is a control variable that continuously incrases on every data transmission, i need it for to understand if COMP is alive
   int OffsetReq;
+  
 };
 
 struct ToNode05 {
@@ -64,8 +72,8 @@ struct ToNode05 {
 };
 ToNode05 ToEnc;
 
-int val = 333; //imposto valore di test per offset
-int insert;
+int val = 9999; //imposto valore di test per offset
+int insert = 0;
 
 const int N_rec (5);      // define number of slaves (receiver = 4 COMP + 1 ENCODER)
 int dummy_val (8888);     // define a value that will be printed if COMP fails
@@ -92,7 +100,7 @@ void setup(void)
 
 
 void loop(void) {
-//delay(2000);
+
   network.update();                                          // looking for news on the network
   while ( network.available() ) {                            // if network is up  ... I need at least one slave active for to keep active the network, otherwise no network will be available
 
@@ -104,21 +112,37 @@ void loop(void) {
     test();
 
     // se leggo dall encoder nodo 5 richiesta offset setto i parametri e rispedisco
-   if(header.from_node == 05){
-     insert = payload.OffsetReq;
- 
-      test();
- /*     Serial.println("richiesta offset ricevuta ");
-      delay(5);
-      ToEnc.OffsetSetted = 1;
-      Serial.println("OffsetSetted = 1");
-      ToEnc.ValoreOffset = val;
-      RF24NetworkHeader header5(node_5);
-      network.write(header5, &ToEnc, sizeof(ToEnc));
-      Serial.println("scrivo sul network");
-      payload.OffsetReq = 0;
-  */      
-   }
+    if (header.from_node == 05) {
+      insert = payload.OffsetReq; //leggo rivchiesta e metto vairaile a1
+      while (insert == 1) {
+        Serial.println("inserire offset da terminale");
+        idx = 0;
+        while (1) {
+          if ( Serial.available() ) {
+            caratteri[idx] = Serial.read();
+            if (caratteri[idx] == 0x0D) break; // se ricevo il CR esco
+            idx++;
+            if (idx > 6) break; // se dopo il 7 carattere ancora non ho ricevuto CR esco perché non ho più spazio
+          }
+        }
+        caratteri[idx] = 0x00; // metto il terminatore di fine stringa al posto giusto
+        val = atoi(caratteri);
+        Serial.print("valore registrato ");
+        Serial.println(val);
+        insert = 0;
+        ToEnc.OffsetSetted = 1;
+        ToEnc.ValoreOffset = val;
+        RF24NetworkHeader header5(05);
+        network.write(header5, &ToEnc, sizeof(ToEnc));
+        payload.OffsetReq = 0;
+        delay(100);
+        }
+    }
+
+
+
+
+
     if (data[node_id - 1].control != payload.control) {      // if control readed from network is different from control stored i assume that the packet is new, so the slave is alive and the data is valid
       data[node_id - 1].num_sent = payload.num_sent;         // so i store readed values in data.num_sent ( this is comparator's readed value from slave)
       data[node_id - 1].control = payload.control;           // update data.control to new value received  (this is the counter sent from slave that increase on every sending)
@@ -129,24 +153,8 @@ void loop(void) {
     }
     increase_counter(node_id - 1);                           // on every cycle it increases all the counters ecxcept that of the node it just read
     fix_values();                                            // if the couter reach the max number of fails setted with Nnosignal variable, data.num_sent will be setted to 8888
-//    raspy();                                                 // this routine send to serial the data as.  COMP1,COMP2,COMP3,COMP4  and then go to new line
-  
-  Serial.print("num_sent ");
-  Serial.print(data[4].num_sent);
-  Serial.print(", control ");
-  Serial.print(data[4].control);
-  Serial.print(", OffsetReq ");
-  Serial.print(payload.OffsetReq);
-  Serial.print("     OffsetSetted ");
-  Serial.print(ToEnc.OffsetSetted);
-  Serial.print(" ValoreOffset ");
-  Serial.print(ToEnc.ValoreOffset);
-  Serial.print(" insert ");
-  Serial.print(insert);  
-  
-  Serial.println();
-  
-  
+    raspy();                                                 // this routine send to serial the data as.  COMP1,COMP2,COMP3,COMP4  and then go to new line
+
   }
 }
 
@@ -180,27 +188,36 @@ void fix_values() {                                           // if the couter r
 }
 
 
-void test(){
-    if (Serial.available() > 0) {
-      char attesa = Serial.read();
-     // while (attesa = ! "a") {
-     // };
- if (attesa == 'A' || attesa == 'a') {
-      
+void test() {
+  if (Serial.available() > 0) {
+    char attesa = Serial.read();
+    // while (attesa = ! "a") {
+    // };
+    if (attesa == 'A' || attesa == 'a') {
+
       data[4].OffsetReq = 1;
     }
-     if (attesa == 'S' || attesa == 's') {
-      
+    if (attesa == 'S' || attesa == 's') {
+
       data[4].OffsetReq = 0;
     }
     if (attesa == 'z' || attesa == 'Z') {
-      
+
       val++;
     }
-if (attesa == 'x' || attesa == 'X') {
-      
+    if (attesa == 'x' || attesa == 'X') {
+
       val--;
     }
-    
-    };
+
+    if (attesa == 'h' || attesa == 'H') {
+
+      ToEnc.OffsetSetted = 1;
+    }
+
+    if (attesa == 'j' || attesa == 'J') {
+
+      ToEnc.OffsetSetted = 0;
+    }
+  };
 }

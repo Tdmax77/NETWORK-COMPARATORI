@@ -40,7 +40,7 @@ RF24Network network(radio);          // Network uses that radio
 const uint16_t this_node = 05;        // Address of our node in Octal format <<-- INSERIRE IL NUMERO DEL COMPARATORE
 const uint16_t other_node = 00;       // Address of the other node in Octal format
 struct payload_t {                  // Structure of our payload
-  int num_sent;
+  long num_sent;
   int control;
   int OffsetReq = 1;
 };
@@ -52,7 +52,7 @@ struct ToNode05 {
 };
 ToNode05 ToEnc;
 // variabili network *********************************************
-int ValOffset;
+int ValOffset = 9999;
 
 void setup() {
   /* encoder*/
@@ -61,7 +61,7 @@ void setup() {
   attachInterrupt(0, updateEncoder, CHANGE);
   attachInterrupt(1, updateEncoder, CHANGE);
   /* encoder*/
- 
+
   // setting per network *****************************************
   SPI.begin();
   radio.begin();
@@ -69,44 +69,39 @@ void setup() {
   // setting per network *****************************************
 
   Serial.begin(38400);
- 
+
 }
 //********************************************************************************************************
 //********************************************************************************************************
 //********************************************************************************************************
 
 void loop() {
-network.update();      
-RF24NetworkHeader header(/*to node*/ other_node);
+  network.update();
+  RF24NetworkHeader header(/*to node*/ other_node);
   bool ok = network.write(header, &pl, sizeof(pl));
-delay(5);
+  delay(5);
+  ValOffset = ToEnc.ValoreOffset;
+  if (ValOffset != 9999) {
+    double auxval = (encoderValue * risoluzioneEncoder) + ToEnc.ValoreOffset;
+    double mod = fmod(auxval, 360.0);
+    if (mod < 0.0) {
+      mod += 360.0;
+    }
+    pl.num_sent = mod*100;
 
-double auxval = (encoderValue * risoluzioneEncoder) + ValOffset;
-  double mod = fmod(auxval, 360.0);
-  if (mod < 0.0) {
-    mod += 360.0;
-  }
-  pl.num_sent = mod;
- 
-  
-  pl.control = pl.control + 1;
-  if (pl.control > 10000) {
-    pl.control = 0;
-  }
-
- // while ( network.available() ) {     // Is there any incoming data?
-    RF24NetworkHeader header2(00);
-    network.read(header2, &ToEnc, sizeof(ToEnc));
-   while (ToEnc.OffsetSetted == 0){
-    Serial.println("Aspetto che venga settato l'offset");
-   }
+    pl.OffsetReq = 0;
     
+    pl.control = pl.control + 1;
+    if (pl.control > 10000) {
+      pl.control = 0;
+    }
 
- pl.num_sent = ToEnc.ValoreOffset + pl.control;
+    // while ( network.available() ) {     // Is there any incoming data?
+    //RF24NetworkHeader header2(00);
+    network.read(header, &ToEnc, sizeof(ToEnc));
+  }
 
-
-
-   Serial.print("num_sent ");
+  Serial.print("num_sent ");
   Serial.print(pl.num_sent);
   Serial.print(", control ");
   Serial.print(pl.control);
