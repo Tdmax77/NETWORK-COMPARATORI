@@ -166,6 +166,8 @@ void raspy() {                                               // this routine sen
     }
     Serial.print(data[ii].num_sent);
   }
+  Serial.print(",");
+  Serial.print(insert);
   Serial.println("");
 }
 
