@@ -63,8 +63,8 @@ struct payload_t {              // Structure of  payload received from slaves
   long num_sent;                 // this is the data readed from COMP, it is the value readed from Mitutoyo Comparator
   int control;                  // this is a control variable that continuously incrases on every data transmission, i need it for to understand if COMP is alive
   int OffsetReq;
-  
-};
+  };
+payload_t payload;
 
 struct ToNode05 {
   bool OffsetSetted;
@@ -106,8 +106,11 @@ void loop(void) {
 
     int cnt (0);                                             // reset counter
     RF24NetworkHeader header;                                // declare the address of this node: every packet sent from slaves to header will be readed from this node (00, the master)
-    payload_t payload;                                       // create object payload
+   // payload_t payload;                                       // create object payload
     network.read(header, &payload, sizeof(payload));         // read the packet netwotk sent for this node
+   Serial.print (" 1  ");
+   ser();
+    
     size_t node_id = header.from_node;                       // create a variable node_id that stores the source of the packet ( who is sending it to me? COMP1 with 01 , COMP2 with 02 and so on..
     test();
 
@@ -136,6 +139,7 @@ void loop(void) {
         network.write(header5, &ToEnc, sizeof(ToEnc));
         payload.OffsetReq = 0;
         delay(100);
+        ser();
         }
     }
 
@@ -222,4 +226,20 @@ void test() {
       ToEnc.OffsetSetted = 0;
     }
   };
+}
+
+void ser(){
+  Serial.print("num_sent ");
+  Serial.print(payload.num_sent);
+  Serial.print(", control ");
+  Serial.print(payload.control);
+  Serial.print(", OffsetReq ");
+  Serial.print(payload.OffsetReq);
+  Serial.print("     OffsetSetted ");
+  Serial.print(ToEnc.OffsetSetted);
+  Serial.print(" ValoreOffset ");
+  Serial.print(ToEnc.ValoreOffset);
+  Serial.println();
+
+  
 }
