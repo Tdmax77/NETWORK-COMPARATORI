@@ -87,7 +87,7 @@ void loop(void) {
   while ( network.available() ) {                            // if network is up  ... I need at least one slave active for to keep active the network, otherwise no network will be available
 
     int cnt (0);                                             // reset counter
-    RF24NetworkHeader header;                                // declare the address of this node: every packet sent from slaves to header will be readed from this node (00, the master)
+    RF24NetworkHeader header(00);                                // declare the address of this node: every packet sent from slaves to header will be readed from this node (00, the master)
     payload_t payload;                                       // create object payload
     network.read(header, &payload, sizeof(payload));         // read the packet netwotk sent for this node
     size_t node_id = header.from_node;                       // create a variable node_id that stores the source of the packet ( who is sending it to me? COMP1 with 01 , COMP2 with 02 and so on..

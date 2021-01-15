@@ -29,7 +29,7 @@
 #include <LiquidCrystal_I2C.h>
 #include "printf.h"
 #include <RF24Network.h>
-#include <nRF24L01.h>
+//#include <nRF24L01.h>
 #define risoluzioneEncoder  0.05 // INSERIRE QUI VALORE ENCODER uguale anche ne programma kren 360/7200=0.05 ma adesso va 360/2850
 
 
@@ -38,7 +38,7 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 /* variabile display*/
 
 /*variabile network */
-RF24 radio(9, 10);              // nRF24L01 (CE,CSN)
+RF24 radio(9,10);              // nRF24L01 (CE,CSN)
 RF24Network network(radio);     // Network uses that radio
 const uint16_t this_node = 00;  // Address of our node in Octal format ( 04,031, etc)   this is the master (raspy display)
 const uint16_t node_5 = 05;     // encoder
@@ -66,8 +66,8 @@ struct ToNode05 {
 };
 ToNode05 ToEnc;
 
-int val = 9999; //imposto valore di test per offset
-int insert = 0;
+int val =9999 ;                 // variabile utilizzata nella procedura inserimento offset
+int insert = 0;           // variabile utilizzata per la richiesta di offset dall'encoder
 
 long num_sentPrev;
 /*variabile network */
@@ -109,12 +109,10 @@ int mostraangolo = 0; // serve a riscrivere l'angolo sul display dopo che ha rip
 
 
 /* variabili per controllo freschezza dati */
-const int N_rec (1);      // define number of slaves (receiver 1 ENCODER)
-int dummy_val (8888);     // define a value that will be printed if COMP fails
-payload_t data[N_rec];    // create an array data
-int counter [N_rec];      // Array defined for validation of data (ses main loop)
-int Nnosignal (20);
+int control;        // variabile contatore che aumenta se i dati vengono ricevuti dall encoder
+int controlprec = 9999;
 /* variabili per controllo freschezza dati */
+int esci = 0;
 
 /**********************************************************************************************************/
 /***********************   SETUP   ************************************************************************/
@@ -140,21 +138,12 @@ void setup() {
   lcd.clear();
   /* parte display i2c */
 
-
   /*Parte Variabile Offset*/
   pinMode (buttonUpPin, INPUT);   //impostazione buttonUpPin come ingresso
   pinMode (buttonDownPin, INPUT); //impostazione buttonDownPin come ingresso
   pinMode (buttonOkPin, INPUT);   //impostazione buttonOkPin come ingresso
   /*Parte Variabile Offset*/
 
-  /*parte controllo */
-  for (size_t ii = 0; ii < N_rec; ii++) {                    // initialize values in data array
-    data[ii].num_sent = 7777;                                // num_sent starts from 7777
-    data[ii].control = 0;                                    // control starts from 0
-    counter[ii] = 0;                                         // reset counter
-  }
-
-  /*parte controllo */
 
 }
 
@@ -168,62 +157,80 @@ void setup() {
 void loop()
 {
   network.update();
-  while ( network.available()) {
-    int cnt (0);
-    RF24NetworkHeader header;
-    //payload_t payload;
-    network.read(header, &payload, sizeof(payload));
-    size_t node_id = header.from_node;                       // create a variable node_id that stores the source of the packet ( who is sending it to me? COMP1 with 01 , COMP2 with 02 and so on..
-    if (header.from_node == 05) {
-      insert = payload.OffsetReq; //leggo rivchiesta e metto vairaile a1
-      while (insert == 1) {
-        testo_richiesta_inserimento_offset();
-        while (digitalRead(buttonOkPin) == LOW )
-        {
-          PROCEDURA_OFFSET();
-        }
-        insert = 0;
-        ToEnc.OffsetSetted = 1;
-        val = var;
-        ToEnc.ValOffset = val;
-        RF24NetworkHeader header5(05);
-        network.write(header5, &ToEnc, sizeof(ToEnc));
-        payload.OffsetReq = 0;
-        delay(100);
+// while ( network.available()) {                                // verifico che il network sia disponibile
+    RF24NetworkHeader header(00);                                   // imposto indirizzo
+    network.read(header, &payload, sizeof(payload));            // leggo network
+//long i = payload.num_sent;
+Serial.println(payload.num_sent);
+ //}
+
+}
+
+
+/*    size_t node_id = header.from_node;                          // create a variable node_id that stores the source of the packet ( who is sending it to me? COMP1 with 01 , COMP2 with 02 and so on..
+    if (header.from_node == 05) {                               // se i dati arrivano dall'encoder
+      insert = payload.OffsetReq;                               // verifico se è richiesto offset e lo metto in variabile insert
+
+      if ((insert == 1)  )                                      // SE E' RICHIESTO L'OFFSET
+      {
+       testo_richiesta_inserimento_offset();
+       Serial.println("testo_richiesta_inserimento_offset()");
+       insert = 0;                                                 //  azzero la richiesta di offset per non entrare nella procedura
+       ToEnc.OffsetSetted = 1;                                     //  comunico allìencoder che l'offset è stato settato//  a display chiedo l'inserimento
+       RF24NetworkHeader header5(05);
+       network.write(header5, &ToEnc, sizeof(ToEnc));              //  spedisco
+       payload.OffsetReq = 0;
+
+        while (digitalRead(buttonOkPin) == LOW ) {
+          
+             PROCEDURA_OFFSET();  
+          
+         
+          }
+
+        // insert = 0;                                                 //  azzero la richiesta di offset per non entrare nella procedura
+        //  ToEnc.OffsetSetted = 1;                                     //  comunico allìencoder che l'offset è stato settato
+        val = var;                                                  //  imposto la variabile da spedire all'encoder (val) al valore di offset impostato (var)
+        ToEnc.ValOffset = val;                                      //  spedisco l'offset
+        //    RF24NetworkHeader header5(05);                              //  imposto indirizzo encoder
+        network.write(header5, &ToEnc, sizeof(ToEnc));              //  spedisco
+        //    payload.OffsetReq = 0;                                      //  azzero la richiesta offset
+        delay(200);
+        network.read(header, &payload, sizeof(payload));
       }
 
+
+      /*     int controlprec;
+           control = payload.control;              // associo a control il valore ricevuto
+           if (control != controlprec) {           // se è cambiato da quello prima
+             display_angolo();                     // visualizzo l'angolo
+             control++;                            // incremento control
+           } else if (control == controlprec){         // se non è cambiato rispetto a prima
+             display_no_conn();                        // non ho connessione
+           }
+      */
+      /*
     }
- 
-  if (data[node_id - 1].control != payload.control) {      // if control readed from network is different from control stored i assume that the packet is new, so the slave is alive and the data is valid
-    data[node_id - 1].num_sent = payload.num_sent;         // so i store readed values in data.num_sent ( this is comparator's readed value from slave)
-    data[node_id - 1].control = payload.control;           // update data.control to new value received  (this is the counter sent from slave that increase on every sending)
-    counter[node_id - 1] = 0;                              // reset couter of the node i readed in this cycle.
-  } else {
-    
-    data[node_id - 1].num_sent = dummy_val;                // if control is not increasing the slave is not alive so i haven't a valid num_sent, therefore i set num_sent as 8888
-    // A valid data is included in a range from 0 to 1360 that is the values readed from Mitutoyo comparator (0-1360 cent)
   }
-  increase_counter(node_id - 1);                           // on every cycle it increases all the counters ecxcept that of the node it just read
-  fix_values();                                            // if the couter reach the max number of fails setted with Nnosignal variable, data.num_sent will be setted to 8888
-  display_angolo();
-  //dati_a_seriale();
-}
-dati_a_seriale();
-int controlprec = payload.control;
-if (payload.control != controlprec) {
-  controlprec = payload.control;
-  display_no_conn();
+
+  control = payload.control;              // associo a control il valore ricevuto
+  if (control != controlprec) {           // se è cambiato da quello prima
+    display_angolo();                     // visualizzo l'angolo
+    controlprec = control;                // incremento control
+  }
+
+
+  dati_a_seriale();                           // dati a seriale per debug
 }
 
-}
-
+*/
 
 
 /*****************************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************************/
 
-
+/*
 void check_Transmission() {                         // procedura verifica trasmissione (usata???)
 
 
@@ -237,11 +244,7 @@ void check_Transmission() {                         // procedura verifica trasmi
       display_no_conn();
     } while (transmissionState = false) ;
   }
-  /*  else
-    {
-    transmissionState = true;   // se ricevo conrrettamente il segnale
-    // display_angolo();
-    }*/
+
 }
 
 void readButtonState() {                            //  Debounch
@@ -269,11 +272,11 @@ void readButtonState() {                            //  Debounch
 }
 
 void PROCEDURA_OFFSET() {                           // mi restituisce un valore var che ho inserito come offset
-#ifdef DEBUG
-  Serial.println("");
-  Serial.println("SONO NELLA PROCEDURA OFFSET()");
-  Serial.println("");
-#endif
+
+  
+  Serial.print(" SONO NELLA PROCEDURA OFFSET()   ");
+  dati_a_seriale();
+
   readButtonState();  //Lettura stato buttons con controllo antirimbalzo
 
   if (buttonUpState == HIGH || buttonDownState == HIGH) {
@@ -320,6 +323,7 @@ void PROCEDURA_OFFSET() {                           // mi restituisce un valore 
     repeatEnable = LOW;
   }
 
+esci = 1;
 }
 
 void display_no_conn() {                            // scrive No Connection Check encoder
@@ -354,23 +358,25 @@ void display_angolo() {                             //ridisegno il display unica
   }
 }
 
-void increase_counter(size_t id) {                  // on every cycle it increases all the counters ecxcept that of the node it just read
+
+/*
+  void increase_counter(size_t id) {                  // on every cycle it increases all the counters ecxcept that of the node it just read
   for (size_t ii = 0; ii < N_rec; ii++) {
     counter[ii]++;
   }
   counter[id]--;
-}
+  }
 
-void fix_values() {                                 // if the couter reach the max number of fails setted with Nnosignal variable, data.num_sent will be setted to 8888
+  void fix_values() {                                 // if the couter reach the max number of fails setted with Nnosignal variable, data.num_sent will be setted to 8888
   for (size_t ii = 0; ii < N_rec; ii++) {
     if (counter[ii] >= Nnosignal) {
       data[ii].num_sent = dummy_val;
       counter[ii] = 0;
     }
   }
-}
+  }
 
-void test() {                                       // debug da consolle
+  void test() {                                       // debug da consolle
 
   if (Serial.available() > 0) {
     char attesa = Serial.read();
@@ -403,8 +409,8 @@ void test() {                                       // debug da consolle
       ToEnc.OffsetSetted = 0;
     }
   };
-}
-
+  }
+*/
 void dati_a_seriale () {                            // Stampa a seriale
   Serial.print("num_sent ");
   Serial.print(payload.num_sent);
@@ -416,5 +422,9 @@ void dati_a_seriale () {                            // Stampa a seriale
   Serial.print(ToEnc.OffsetSetted);
   Serial.print(" ValoreOffset ");
   Serial.print(ToEnc.ValOffset);
+  Serial.print (" controlprec ");
+  Serial.print (controlprec);
+  Serial.print (" control ");
+  Serial.print (control);
   Serial.println();
 }

@@ -16,7 +16,7 @@
 #include <RF24.h>
 #include <SPI.h>
 #include <printf.h>
-//#define DEBUG  //<<--- DECOMMENTARE SE NECESSARIO
+#define DEBUG  //<<--- DECOMMENTARE SE NECESSARIO
 //#define TASTIERA //<<--- DECOMMENTARE SE NECESSARIO
 
 
@@ -35,7 +35,7 @@ int sign;
 // variabili network *********************************************
 RF24 radio(10, 9);     // RF_NANO radio (pin fissi cablati sulla scheda)
 RF24Network network(radio);          // Network uses that radio
-const uint16_t this_node = 04;        // Address of our node in Octal format <<-- INSERIRE IL NUMERO DEL COMPARATORE
+const uint16_t this_node = 01;        // Address of our node in Octal format <<-- INSERIRE IL NUMERO DEL COMPARATORE
 const uint16_t other_node = 00;       // Address of the other node in Octal format
 struct payload_t {                  // Structure of our payload
   long num_sent;

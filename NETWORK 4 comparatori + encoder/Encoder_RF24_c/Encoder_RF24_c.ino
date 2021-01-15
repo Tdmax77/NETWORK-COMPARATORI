@@ -42,13 +42,13 @@ const uint16_t other_node = 00;       // Address of the other node in Octal form
 struct payload_t {                  // Structure of our payload
   long num_sent;
   int control;
-  int OffsetReq;
+  int OffsetReq = 1;
 };
 payload_t pl;
 
 struct ToNode05 {
-  bool OffsetSetted = 1;
-  int ValoreOffset;
+  bool OffsetSetted = 0;
+  int ValoreOffset = 0;
 };
 ToNode05 ToEnc;
 // variabili network *********************************************
@@ -77,18 +77,12 @@ void setup() {
 
 void loop() {
   network.update();
-  RF24NetworkHeader header(00);
- bool ok = network.write(header, &pl, sizeof(pl));
+  RF24NetworkHeader header(/*to node*/ other_node);
+  bool ok = network.write(header, &pl, sizeof(pl));
   delay(5);
-if (!ok) 
-Serial.println("failed");
-
- //RF24NetworkHeader header5(05);
- network.read(header, &ToEnc, sizeof(ToEnc));
- VOff= ToEnc.ValoreOffset;
-
- Serial.print (" VOff ");
- Serial.println(VOff);
+  network.update();
+  //network.read(header, &ToEnc, sizeof(ToEnc));
+ // VOff= ToEnc.ValoreOffset;
   if (VOff != 9999) {
     double auxval = (encoderValue * risoluzioneEncoder) + ToEnc.ValoreOffset;
     double mod = fmod(auxval, 360.0);
@@ -103,10 +97,10 @@ Serial.println("failed");
     if (pl.control > 10000) {
       pl.control = 0;
     }
-//network.write(header, &pl, sizeof(pl));
-delay(5);
+
     // while ( network.available() ) {     // Is there any incoming data?
     //RF24NetworkHeader header2(00);
+    network.update();
     network.read(header, &ToEnc, sizeof(ToEnc));
   }
 
