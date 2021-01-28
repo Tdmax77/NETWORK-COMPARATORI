@@ -50,8 +50,6 @@ payload_t pl;
 
 // variabili network *********************************************
 int VOff = 9999;
-//int Req = 1;
-
 
 void setup() {
   /* encoder*/
@@ -78,37 +76,30 @@ void loop() {
   network.update();                                   // aggiorno
 
   RF24NetworkHeader header(00);                       // imposto indirizzo del master
-  bool ok = network.write(header, &pl, sizeof(pl));   // scrivo al master che OffsetReq = 1 e VO = 9999
-//  delay(5);
-//  if (!ok) Serial.println("failed");
-
+  network.write(header, &pl, sizeof(pl));   // scrivo al master che OffsetReq = 1 e VO = 9999
   RF24NetworkHeader header5(05);                       // imposto idirizzo di questo nodo
   network.read(header5, &pl, sizeof(pl));              // leggo le variabili del payload
   VOff = pl.VO; 
-//  Req = pl.OffsetReq;
 
-  if  ((VOff != 9999)/*&& (Req == 1)*/) {                                               //Se Voff è stato impostato e risulta diverso da 9999
+  if  ((VOff != 9999)) {                                               //Se Voff è stato impostato e risulta diverso da 9999
     double auxval = (encoderValue * risoluzioneEncoder) + pl.VO;    // sommo il valore dell'OFFset VO alla lettura
     double mod = fmod(auxval, 360.0);
     if (mod < 0.0) {
       mod += 360.0;
     }
     pl.num_sent = mod * 100;
-
     pl.OffsetReq = 0;
-
     pl.control = pl.control + 1;
     if (pl.control > 10000) {
       pl.control = 0;
     }
     network.write(header, &pl, sizeof(pl));                         // scrivo il dato letto
-    //delay(5);
+    
   } else {                                                          // altrimenti se il VO è ancora a 9999
     encoderValue = 0;                                               // azzero la lettura dell'encoder in modo da partire solo con il valore di offset impostato al prossimo ciclo
     pl.OffsetReq = 1;                                               // resta attiva la richiesta di offset
     network.write(header, &pl, sizeof(pl));                         // riscrivo la richiesta di offset verso il  master
-    //delay(5);
-
+    
   }
 
   Serial.print("num_sent ");

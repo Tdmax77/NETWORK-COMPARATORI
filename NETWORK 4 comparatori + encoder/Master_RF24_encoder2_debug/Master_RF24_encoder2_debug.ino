@@ -74,7 +74,7 @@ const int N_rec (6);      // define number of slaves (receiver = 4 COMP + 1 ENCO
 int dummy_val (8888);     // define a value that will be printed if COMP fails
 payload_t data[N_rec];    // create an array data
 int counter [N_rec];      // Array defined for validation of data (ses main loop)
-int Nnosignal (3000);       // number of acceptable failed reads
+int Nnosignal (30);       // number of acceptable failed reads
 
 int val = 0;              // This is the value readed on the index of flywheel by user and insered by the OFFSET Request task
 unsigned long tempo;      // need for the y counter
@@ -108,7 +108,7 @@ void setup(void)
 
 void loop(void) {
 
-  if (millis() > tempo + 100) {                              // y is always 1 so i can enter into Offset task,
+  if (millis() > tempo + 300) {                              // y is always 1 so i can enter into Offset task,
     y = 1;                                                   // when Offset is setted y become 0 so the Offset task can't loop.
   } else {                                                   // after 100 milliseconds y become 1 so it is possible to execute Offset task.
     y = 0;
@@ -124,36 +124,36 @@ void loop(void) {
     network.read(header, &payload, sizeof(payload));         // read the packet netwotk sent for this node
     size_t node_id = header.from_node;                       // create a variable node_id that stores the source of the packet ( who is sending it to me? COMP1 with 01 , COMP2 with 02 and so on..
 
-//    if (header.from_node == 05) {                                            // if payload came from node_05 (encoder) i need to check for Offset
-      if ((payload.OffsetReq == 1) && (payload.VO = 9999) && (y == 1)) {     // if Offset is request i start the Offset task
+    //    if (header.from_node == 05) {                      // if payload came from node_05 (encoder) i need to check for Offset
+    if ((payload.OffsetReq == 1) && (payload.VO = 9999) && (y == 1)) {     // if Offset is request i start the Offset task
 
 
-        // ROUTINE INSERIMENTO DA TERMINALE  ////////////////////////////////////////////////////////////////////////////////////
-        Serial.println("inserire offset da terminale");
-        idx = 0;
-        while (1) {
-          if ( Serial.available() ) {
-            caratteri[idx] = Serial.read();
-            if (caratteri[idx] == 0x0D) break; // se ricevo il CR esco
-            idx++;
-            if (idx > 6) break; // se dopo il 7 carattere ancora non ho ricevuto CR esco perché non ho più spazio
-          }
+      // ROUTINE INSERIMENTO DA TERMINALE  ////////////////////////////////////////////////////////////////////////////////////
+      Serial.println("inserire offset da terminale");
+      idx = 0;
+      while (1) {
+        if ( Serial.available() ) {
+          caratteri[idx] = Serial.read();
+          if (caratteri[idx] == 0x0D) break; // se ricevo il CR esco
+          idx++;
+          if (idx > 6) break; // se dopo il 7 carattere ancora non ho ricevuto CR esco perché non ho più spazio
         }
-        caratteri[idx] = 0x00; // metto il terminatore di fine stringa al posto giusto
-        val = atoi(caratteri);
-        Serial.print("valore registrato ");
-        Serial.println(val);
-        // ROUTINE INSERIMENTO DA TERMINALE  ////////////////////////////////////////////////////////////////////////////////////
-        payload.OffsetReq = 0;                                                // reset the Offset request
-        payload.VO = val;                                                     // assign offset value to payload
-        RF24NetworkHeader header5(05);                                        // define encoder network address
-        network.write(header5, &payload, sizeof(payload));                    // send payload to encoder
-        delay(100);                                                           // little delay
-        tempo = millis();                                                     // set variable for y status
-        y = 0;                                                                // put y to 0
-
       }
-//    }
+      caratteri[idx] = 0x00; // metto il terminatore di fine stringa al posto giusto
+      val = atoi(caratteri);
+      Serial.print("valore registrato ");
+      Serial.println(val);
+      // ROUTINE INSERIMENTO DA TERMINALE  ////////////////////////////////////////////////////////////////////////////////////
+      payload.OffsetReq = 0;                                                // reset the Offset request
+      payload.VO = val;                                                     // assign offset value to payload
+      RF24NetworkHeader header5(05);                                        // define encoder network address
+      network.write(header5, &payload, sizeof(payload));                    // send payload to encoder
+      delay(100);                                                           // little delay
+      tempo = millis();                                                     // set variable for y status
+      y = 0;                                                                // put y to 0
+
+    }
+    //    }
 
     if (data[node_id - 1].control != payload.control) {      // if control readed from network is different from control stored i assume that the packet is new, so the slave is alive and the data is valid
       data[node_id - 1].num_sent = payload.num_sent;         // so i store readed values in data.num_sent ( this is comparator's readed value from slave)
@@ -166,17 +166,7 @@ void loop(void) {
     increase_counter(node_id - 1);                           // on every cycle it increases all the counters ecxcept that of the node it just read
     fix_values();                                            // if the couter reach the max number of fails setted with Nnosignal variable, data.num_sent will be setted to 8888
     raspy();                                                 // this routine send to serial the data as.  COMP1,COMP2,COMP3,COMP4  and then go to new line
-
-    /*
-      Serial.print(" Y=");
-      Serial.println(y);
-      Serial.print ("  dato spedito ");
-      Serial.print(payload.num_sent);
-      Serial.print("  tempo= ");
-      Serial.println(tempo);
-    */
   }
-
 }
 
 
@@ -192,7 +182,11 @@ void raspy() {                                               // this routine sen
     if (ii != 0) {
       Serial.print(",");
     }
+    Serial.print(" Dato = ");                 //DEBUG
     Serial.print(data[ii].num_sent);
+    Serial.print(" count = ");                 //DEBUG
+    //Serial.print(data[ii].control);           //DEBUG
+    Serial.print(counter[ii]);
   }
   Serial.print(",");
   Serial.print(payload.OffsetReq);
