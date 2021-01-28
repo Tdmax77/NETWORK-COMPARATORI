@@ -1,6 +1,6 @@
-/*This is the code for the master in our project " WARTSILA WIRELESS COMPARATORS READING SYSTEM "
+/*This is the code for the master in our project " WARTSILA WIRELESS COMPARATORS and ENCODER (Kren) READING SYSTEM "
 
-   The target is to read 4 comparators that continuously send data to a central unit.
+   The target is to read 4 comparators and an encoder  that continuously send data to a central unit.
 
 
    WARNING: LET'S START FROM THE ASSUMPTION THAT THE VALUES READED FROM THE NODES (COMPARATORS) ARE INCLUDED BETWEEN 0 AND 1360
@@ -16,7 +16,7 @@
 
    The central unit (for which this code is written), on every cycle read a packet from the network and analyzes it:
    It reads who is the sender and the data, then if they are valid, stores them into data array.
-   The reading from the network is not sequential, it is random so i need to create the array for to assure that i read all the nodes of my net (all the comparators)
+   The reading from the network is not sequential, it is random so i need to create the array for to assure that it read all the nodes of my net (all the comparators and the encoder)
    On every cycle i incrase the counter of all nodes excepted the one i read. If a node is down his counter will increase untill it will reach the maximum allowed value (Nnosignal)
    In this case the the data sended to raspberry will be 8888.
 
@@ -25,13 +25,17 @@
    0000,0101,8888,0099
 
    In this 2 lines i see that comp 1 is not changed , comp2 is increased by 1 cents, comp3 is not reachable, comp4 is not changed.
-
    On every cycle the code sends all the data to the raspberry which is demanded to control graphic interface and data storage.
 
+   The encoder (kren) is the node_5, it requires a different approach because its value needs to be aligned with flywheel index using an OFFSET Value (VO).
+   Kren asks for an Offset value when it starts (OffsetReq = 1), Offset value is setted to 9999 (VO = 9999).
+   So Master wait for this value from user. Then it stores the data in val, send it to encoder and esc from Offset task.
+   Because of a "strange problem" it asks 4-5 times the offset value (probably a timing problem) so i introduced a condition y.
+   y is setted to 1 all the time,this is a condition for enter into Offset task, after the task y becomes 0 for only 0,1 sec so the program can't enter again in Offset task.
+   After 0,1 sec y goes to 1 so, if encoder is closed and reopen, master could enter into Offset task again.
 
-   Powered by Massimo Riosa and Michael Magris
-
-   Release 1.0
+   Powered by Massimo Riosa
+   Release 1.1
 */
 
 
@@ -40,16 +44,15 @@
 #include <RF24.h>
 #include <SPI.h>
 
-//inserimento stringa da terminale per offset
+//inserimento stringa da terminale per offset *******************************************************************
 byte idx;
 char caratteri[8]; // massimo 7 caratteri + lo 0x00 di fine stringa
 int numero;
-//inserimento stringa da terminale per offset
+//inserimento stringa da terminale per offset *******************************************************************
 
 
-//#define DEBUG
 
-RF24 radio(10, 9);               // nRF24L01(+) radio attached using Getting Started board n.b. i can't modify them because of hardware design on modules RF-NANO
+RF24 radio(9/*CE*/, 10/*CSN*/);             // Coto and Kren (7,8)  RF-NANO with ext ant. (9,10) RF-NANO without ext ant (10,9)
 
 RF24Network network(radio);     // Network uses that radio
 const uint16_t this_node = 00;  // Address of our node in Octal format ( 04,031, etc)   this is the master (raspy display)
@@ -57,31 +60,30 @@ const uint16_t node_1 = 01;     // Address of the other node in Octal format    
 const uint16_t node_2 = 02;     // Address of the other node in Octal format            this is COMP_2
 const uint16_t node_3 = 03;     // Address of the other node in Octal format            this is COMP_3
 const uint16_t node_4 = 04;     // Address of the other node in Octal format            this is COMP_4
-const uint16_t node_5 = 05;     // Address of the encoder node in Octal format          this ins ENCODER
+const uint16_t node_5 = 05;     // Address of the encoder node in Octal format          this is ENCODER
 
 struct payload_t {              // Structure of  payload received from slaves
-  long num_sent;                 // this is the data readed from COMP, it is the value readed from Mitutoyo Comparator
+  long num_sent;                // this is the data readed from COMP, it is the value readed from Mitutoyo Comparator
   int control;                  // this is a control variable that continuously incrases on every data transmission, i need it for to understand if COMP is alive
-  int OffsetReq;
-  int VO;
+  int OffsetReq;                // if 1 Offset is requested, used only by node_5
+  int VO;                       // Offset value
 };
 payload_t payload;
 
-//payload.OffsetReq = 1;
-//payload.VO = 9999;
-
-
-int insert = 0;
-int xxx = 0;
-int val = 0;
-
-const int N_rec (5);      // define number of slaves (receiver = 4 COMP + 1 ENCODER)
+const int N_rec (6);      // define number of slaves (receiver = 4 COMP + 1 ENCODER)
 int dummy_val (8888);     // define a value that will be printed if COMP fails
 payload_t data[N_rec];    // create an array data
 int counter [N_rec];      // Array defined for validation of data (ses main loop)
-int Nnosignal (60);       // number of acceptable failed reads
+int Nnosignal (30);       // number of acceptable failed reads
+
+int val = 0;              // This is the value readed on the index of flywheel by user and insered by the OFFSET Request task
+unsigned long tempo;      // need for the y counter
+int y = 1;                // need for block OFFSET Request loop
 
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////// S E T U P  ////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void setup(void)
 {
@@ -90,37 +92,43 @@ void setup(void)
   radio.begin();                                             // initialize radio module
   network.begin(/*channel*/ 90, /*node address*/ this_node); // start network
 
-  for (size_t ii = 0; ii < N_rec; ii++) {                    // initialize values in data array
+  for (size_t ii = 0; ii < N_rec; ii++) {                    // initialize all values in data array
     data[ii].num_sent = 7777;                                // num_sent starts from 7777
     data[ii].control = 0;                                    // control starts from 0
     counter[ii] = 0;                                         // reset counter
   }
-
-payload.OffsetReq = 1;
-payload.VO = 9999;
 }
 
 
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////// L O O P //////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void loop(void) {
+
+  if (millis() > tempo + 100) {                              // y is always 1 so i can enter into Offset task,
+    y = 1;                                                   // when Offset is setted y become 0 so the Offset task can't loop.
+  } else {                                                   // after 100 milliseconds y become 1 so it is possible to execute Offset task.
+    y = 0;
+  }
+
 
   network.update();                                          // looking for news on the network
   while ( network.available() ) {                            // if network is up  ... I need at least one slave active for to keep active the network, otherwise no network will be available
 
     int cnt (0);                                             // reset counter
     RF24NetworkHeader header;                                // declare the address of this node: every packet sent from slaves to header will be readed from this node (00, the master)
-                                     
+
     network.read(header, &payload, sizeof(payload));         // read the packet netwotk sent for this node
-   Serial.print (" 1  ");
-   ser();
-
     size_t node_id = header.from_node;                       // create a variable node_id that stores the source of the packet ( who is sending it to me? COMP1 with 01 , COMP2 with 02 and so on..
-    test();
 
-    
-    if (header.from_node == 05) {                               // se leggo dall encoder nodo 5 richiesta offset setto i parametri e rispedisco
-      insert = payload.OffsetReq;                               // se è richiesto l'offset metto insert a 1
-      xxx = payload.VO;
-      if ((insert == 1) && (xxx = 9999)) {               // se è richiesto offset e se il suo valore non è stato inserito 
+//    if (header.from_node == 05) {                                            // if payload came from node_05 (encoder) i need to check for Offset
+      if ((payload.OffsetReq == 1) && (payload.VO = 9999) && (y == 1)) {     // if Offset is request i start the Offset task
+
+
+        // ROUTINE INSERIMENTO DA TERMINALE  ////////////////////////////////////////////////////////////////////////////////////
         Serial.println("inserire offset da terminale");
         idx = 0;
         while (1) {
@@ -135,21 +143,17 @@ void loop(void) {
         val = atoi(caratteri);
         Serial.print("valore registrato ");
         Serial.println(val);
-        insert = 0;
-        xxx= 0;
-        payload.OffsetReq = 0;
-        payload.VO = val;
+        // ROUTINE INSERIMENTO DA TERMINALE  ////////////////////////////////////////////////////////////////////////////////////
+        payload.OffsetReq = 0;                                                // reset the Offset request
+        payload.VO = val;                                                     // assign offset value to payload
+        RF24NetworkHeader header5(05);                                        // define encoder network address
+        network.write(header5, &payload, sizeof(payload));                    // send payload to encoder
+        delay(100);                                                           // little delay
+        tempo = millis();                                                     // set variable for y status
+        y = 0;                                                                // put y to 0
 
-        RF24NetworkHeader header5(05);
-        network.write(header5, &payload, sizeof(payload));
-        //delay(100);
-       // ser();
       }
-    }
-
-
-
-
+//    }
 
     if (data[node_id - 1].control != payload.control) {      // if control readed from network is different from control stored i assume that the packet is new, so the slave is alive and the data is valid
       data[node_id - 1].num_sent = payload.num_sent;         // so i store readed values in data.num_sent ( this is comparator's readed value from slave)
@@ -163,8 +167,24 @@ void loop(void) {
     fix_values();                                            // if the couter reach the max number of fails setted with Nnosignal variable, data.num_sent will be setted to 8888
     raspy();                                                 // this routine send to serial the data as.  COMP1,COMP2,COMP3,COMP4  and then go to new line
 
+    /*
+      Serial.print(" Y=");
+      Serial.println(y);
+      Serial.print ("  dato spedito ");
+      Serial.print(payload.num_sent);
+      Serial.print("  tempo= ");
+      Serial.println(tempo);
+    */
   }
+
 }
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////  R O U T I N E S  //////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 
 void raspy() {                                               // this routine send to serial the data as.  COMP1,COMP2,COMP3,COMP4  and then go to new line
@@ -175,7 +195,7 @@ void raspy() {                                               // this routine sen
     Serial.print(data[ii].num_sent);
   }
   Serial.print(",");
-  Serial.print(insert);
+  Serial.print(payload.OffsetReq);
   Serial.println("");
 }
 
@@ -201,34 +221,12 @@ void fix_values() {                                           // if the couter r
 void test() {
   if (Serial.available() > 0) {
     char attesa = Serial.read();
-    // while (attesa = ! "a") {
-    // };
     if (attesa == 'A' || attesa == 'a') {
-
       data[4].OffsetReq = 1;
     }
     if (attesa == 'S' || attesa == 's') {
-
       data[4].OffsetReq = 0;
     }
-    if (attesa == 'z' || attesa == 'Z') {
-
-      val++;
-    }
-    if (attesa == 'x' || attesa == 'X') {
-
-      val--;
-    }
-
-    //    if (attesa == 'h' || attesa == 'H') {
-
-    //      ToEnc.OffsetSetted = 1;
-    //    }
-
-    //   if (attesa == 'j' || attesa == 'J') {
-
-    //      ToEnc.OffsetSetted = 0;
-    //   }
   };
 }
 
