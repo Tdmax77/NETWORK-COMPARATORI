@@ -70,7 +70,7 @@ struct payload_t {              // Structure of  payload received from slaves
 };
 payload_t payload;
 
-const int N_rec (6);      // define number of slaves (receiver = 4 COMP + 1 ENCODER)
+const int N_rec (5);      // define number of slaves (receiver = 4 COMP + 1 ENCODER)
 int dummy_val (8888);     // define a value that will be printed if COMP fails
 payload_t data[N_rec];    // create an array data
 int counter [N_rec];      // Array defined for validation of data (ses main loop)
@@ -159,9 +159,10 @@ void loop(void) {
       data[node_id - 1].num_sent = payload.num_sent;         // so i store readed values in data.num_sent ( this is comparator's readed value from slave)
       data[node_id - 1].control = payload.control;           // update data.control to new value received  (this is the counter sent from slave that increase on every sending)
       counter[node_id - 1] = 0;                              // reset couter of the node i readed in this cycle.
+      
     } else {
       data[node_id - 1].num_sent = dummy_val;                // if control is not increasing the slave is not alive so i haven't a valid num_sent, therefore i set num_sent as 8888
-      // A valid data is included in a range from 0 to 1360 that is the values readed from Mitutoyo comparator (0-1360 cent)
+                                                             // A valid data is included in a range from 0 to 1360 that is the values readed from Mitutoyo comparator (0-1360 cent)
     }
     increase_counter(node_id - 1);                           // on every cycle it increases all the counters ecxcept that of the node it just read
     fix_values();                                            // if the couter reach the max number of fails setted with Nnosignal variable, data.num_sent will be setted to 8888
@@ -182,10 +183,11 @@ void raspy() {                                               // this routine sen
     if (ii != 0) {
       Serial.print(",");
     }
-    Serial.print(" Dato = ");                 //DEBUG
+    Serial.print(" D= ");                 //DEBUG
     Serial.print(data[ii].num_sent);
-    Serial.print(" count = ");                 //DEBUG
-    //Serial.print(data[ii].control);           //DEBUG
+    Serial.print(" Cont= ");                 //DEBUG
+    Serial.print(data[ii].control);       //DEBUG
+    Serial.print(" COUNT= "); 
     Serial.print(counter[ii]);
   }
   Serial.print(",");

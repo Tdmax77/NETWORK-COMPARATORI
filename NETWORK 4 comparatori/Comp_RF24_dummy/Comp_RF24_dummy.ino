@@ -33,13 +33,15 @@ int sign;
 // variabili per mitutoyo ****************************************
 
 // variabili network *********************************************
-RF24 radio(10, 9);     // RF_NANO radio (pin fissi cablati sulla scheda)
+RF24 radio(9,10);     // RF_NANO radio (pin fissi cablati sulla scheda)
 RF24Network network(radio);          // Network uses that radio
-const uint16_t this_node = 01;        // Address of our node in Octal format <<-- INSERIRE IL NUMERO DEL COMPARATORE
+const uint16_t this_node = 02;        // Address of our node in Octal format <<-- INSERIRE IL NUMERO DEL COMPARATORE
 const uint16_t other_node = 00;       // Address of the other node in Octal format
 struct payload_t {                  // Structure of our payload
-  long num_sent;
+    long num_sent;
   int alive;
+  int OffsetReq = 20;
+  int VO = 8888;
 };
 payload_t pl;
 // variabili network *********************************************

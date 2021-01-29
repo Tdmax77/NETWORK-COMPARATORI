@@ -76,30 +76,34 @@ void loop() {
   network.update();                                   // aggiorno
 
   RF24NetworkHeader header(00);                       // imposto indirizzo del master
-  network.write(header, &pl, sizeof(pl));   // scrivo al master che OffsetReq = 1 e VO = 9999
-  RF24NetworkHeader header5(05);                       // imposto idirizzo di questo nodo
-  network.read(header5, &pl, sizeof(pl));              // leggo le variabili del payload
-  VOff = pl.VO; 
+  network.write(header, &pl, sizeof(pl));             // scrivo al master che OffsetReq = 1 e VO = 9999
+  RF24NetworkHeader header5(05);                      // imposto idirizzo di questo nodo
+  network.read(header5, &pl, sizeof(pl));             // leggo le variabili del payload
+  VOff = pl.VO;
 
-  if  ((VOff != 9999)) {                                               //Se Voff è stato impostato e risulta diverso da 9999
-    double auxval = (encoderValue * risoluzioneEncoder) + pl.VO;    // sommo il valore dell'OFFset VO alla lettura
-    double mod = fmod(auxval, 360.0);
+  if  ((VOff != 9999)) {                                             // Se Voff è stato impostato e risulta diverso da 9999
+    double auxval = (encoderValue * risoluzioneEncoder) + pl.VO;     // sommo il valore dell'OFFset VO alla lettura
+    double mod = fmod(auxval, 360.0);                                // se il dato supera i 360 ritorno a zero    
     if (mod < 0.0) {
       mod += 360.0;
     }
-    pl.num_sent = mod * 100;
-    pl.OffsetReq = 0;
+    pl.num_sent = mod * 100;                                      // moltiplico il dato per avere un numero intero da spedire
+    pl.OffsetReq = 0;                                             // azzero la richiesta di Offset
+    pl.control = pl.control + 1;                                  // aumento la variabile contatore di controllo
+    if (pl.control > 10000) {
+      pl.control = 0;
+    }
+    network.write(header, &pl, sizeof(pl));                         // invio il dato letto al master 
+
+  } else {                                                          // altrimenti se il VO è ancora a 9999
+    encoderValue = 0;                                               // azzero la lettura dell'encoder in modo da partire solo con il valore di offset impostato al prossimo ciclo
+    pl.OffsetReq = 1;                                               // resta attiva la richiesta di offset
     pl.control = pl.control + 1;
     if (pl.control > 10000) {
       pl.control = 0;
     }
-    network.write(header, &pl, sizeof(pl));                         // scrivo il dato letto
-    
-  } else {                                                          // altrimenti se il VO è ancora a 9999
-    encoderValue = 0;                                               // azzero la lettura dell'encoder in modo da partire solo con il valore di offset impostato al prossimo ciclo
-    pl.OffsetReq = 1;                                               // resta attiva la richiesta di offset
     network.write(header, &pl, sizeof(pl));                         // riscrivo la richiesta di offset verso il  master
-    
+
   }
 
   Serial.print("num_sent ");
