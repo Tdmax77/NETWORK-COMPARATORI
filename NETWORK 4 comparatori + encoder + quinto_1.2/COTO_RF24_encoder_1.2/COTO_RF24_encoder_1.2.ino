@@ -67,14 +67,15 @@ payload_t payload;
 
 long valoreangolocorrettoPrev;
 int mostraangolo = 0;
+float angprint;
+float angstamp;
 
-const int N_rec (1);      // define number of slaves (receiver = 4 COMP + 1 ENCODER)
 int dummy_val (8888);     // define a value that will be printed if COMP fails
-payload_t data[N_rec];    // create an array data
-int counter [N_rec];      // Array defined for validation of data (ses main loop)
+payload_t data;    // create an array data
+int counter ;      // Array defined for validation of data (ses main loop)
 int Nnosignal (30);       // number of acceptable failed reads
 
-int val = 0;              // This is the value readed on the index of flywheel by user and insered by the OFFSET Request task
+//int val = 0;              // This is the value readed on the index of flywheel by user and insered by the OFFSET Request task
 unsigned long tempo;      // need for the y counter
 int y = 1;                // need for block OFFSET Request loop
 
@@ -103,7 +104,8 @@ int readingUp = 0;  //Lettura ingresso digitale del pulsante di UP
 int readingDown = 0;  //Lettura ingresso digitale del pulsante di Down
 
 /*Variabili Offset servono ad inserire il valore usando i 3 pulsanti*/
-
+//int counter;
+int counterprec;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// S E T U P  ////////////////////////////////////////////////////////
@@ -125,21 +127,20 @@ void setup(void)
   /* parte display i2c */
   lcd.init();                      // initialize the lcd
   lcd.backlight();
-  lcd.setCursor(0, 0);
-  lcd.print("Crankshaft");
-  lcd.setCursor(0, 1);
-  lcd.print("Wireless reader");
-  delay(3000);
+  /*  lcd.setCursor(0, 0);
+    lcd.print("Crankshaft");
+    lcd.setCursor(0, 1);
+    lcd.print("Wireless reader");
+    delay(3000);*/
   lcd.clear();
   /* parte display i2c */
 
 
 
-  for (size_t ii = 0; ii < N_rec; ii++) {                    // initialize all values in data array
-    data[ii].num_sent = 7777;                                // num_sent starts from 7777
-    data[ii].control = 0;                                    // control starts from 0
-    counter[ii] = 0;                                         // reset counter
-  }
+  data.num_sent = 7777;                                // num_sent starts from 7777
+  data.control = 0;                                    // control starts from 0
+  counter = 0;                                         // reset counter
+
 }
 
 
@@ -151,40 +152,34 @@ void setup(void)
 
 void loop(void) {
 
-    if (millis() > tempo + 300) {                              // y is always 1 so i can enter into Offset task,
-      y = 1;                                                   // when Offset is setted y become 0 so the Offset task can't loop.
-    } else {                                                   // after 100 milliseconds y become 1 so it is possible to execute Offset task.
-      y = 0;
-    }
- 
+  if (millis() > tempo + 300) {                              // y is always 1 so i can enter into Offset task,
+    y = 1;                                                   // when Offset is setted y become 0 so the Offset task can't loop.
+  } else {                                                   // after 100 milliseconds y become 1 so it is possible to execute Offset task.
+    y = 0;
+  }
 
-  network.update();                                          // looking for news on the network
- /*  if(!network.available()) {  // verifico se ho l'encoder acceso
-      display_no_conn();
-      delay(2000);
-      mostraangolo = 1;
-      }
-*/
- /*   default:
-      if (mostraangolo == 1) {
-         lcd.setCursor(0, 0);
-         lcd.print("    Angolo:     ");
-         lcd.setCursor(10, 1);
-         lcd.print("Gradi");
-         lcd.setCursor(0, 1);
-         lcd.print("          ");
-         lcd.setCursor(1, 1);
-         lcd.print(payload.num_sent);
-         mostraangolo = 0;
-     }*/
+
+  network.update();           // looking for news on the network
+  ser();
+
   while ( network.available() ) {                            // if network is up  ... I need at least one slave active for to keep active the network, otherwise no network will be available
-
+  
+    if (mostraangolo == 1) {
+        lcd.setCursor(0, 0);
+        lcd.print("    Angolo:     ");
+        lcd.setCursor(10, 1);
+        lcd.print("Gradi");
+        lcd.setCursor(0, 1);
+        lcd.print("          ");
+        lcd.setCursor(1, 1);
+        lcd.print(angstamp);
+        mostraangolo = 0;
+      }
+    
     int cnt (0);                                             // reset counter
     RF24NetworkHeader header;                                // declare the address of this node: every packet sent from slaves to header will be readed from this node (00, the master)
-
     network.read(header, &payload, sizeof(payload));         // read the packet netwotk sent for this node
     size_t node_id = header.from_node;                       // create a variable node_id that stores the source of the packet ( who is sending it to me? COMP1 with 01 , COMP2 with 02 and so on..
-
 
     if ((payload.OffsetReq == 1) && (payload.VO = 9999) && (y == 1)) {     // if Offset is request i start the Offset task
       testo_richiesta_inserimento_offset();
@@ -200,22 +195,24 @@ void loop(void) {
       tempo = millis();                                                     // set variable for y status
       y = 0;                                                                // put y to 0
     }
-    Serial.println ("sono QUa");
+  }
 
-    if (data[node_id - 1].control != payload.control) {      // if control readed from network is different from control stored i assume that the packet is new, so the slave is alive and the data is valid
-      data[node_id - 1].num_sent = payload.num_sent;         // so i store readed values in data.num_sent ( this is comparator's readed value from slave)
-      data[node_id - 1].control = payload.control;           // update data.control to new value received  (this is the counter sent from slave that increase on every sending)
-      counter[node_id - 1] = 0;                              // reset couter of the node i readed in this cycle.
+  if (data.control != payload.control) {      // if control readed from network is different from control stored i assume that the packet is new, so the slave is alive and the data is valid
+    data.num_sent = payload.num_sent;         // so i store readed values in data.num_sent ( this is comparator's readed value from slave)
+    data.control = payload.control;           // update data.control to new value received  (this is the counter sent from slave that increase on every sending)
+    counter = 0;                              // reset couter of the node i readed in this cycle.
+  } else {
+    counter = counter += 1;                                                      // A valid data is included in a range from 0 to 1360 that is the values readed from Mitutoyo comparator (0-1360 cent)
+  }
 
-    } else {
-      counter[node_id - 1] *= 1;                                                      // A valid data is included in a range from 0 to 1360 that is the values readed from Mitutoyo comparator (0-1360 cent)
-    }
-    increase_counter(node_id - 1);                           // on every cycle it increases all the counters ecxcept that of the node it just read
-    fix_values();                                            // if the couter reach the max number of fails setted with Nnosignal variable, data.num_sent will be setted to 8888
+  if (counter >= Nnosignal) {
+    display_no_conn();
+    delay(2000);
+    mostraangolo = 1;
+  } else {
     display_angolo();
   }
 }
-
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -298,8 +295,8 @@ void PROCEDURA_OFFSET() // mi restituisce un valore var che ho inserito come off
     timerPauseRepeat = millis();
     repeatEnable = LOW;
   }
-
 }
+
 
 void display_no_conn() {
 
@@ -321,6 +318,8 @@ void display_angolo() {
   if (payload.num_sent != valoreangolocorrettoPrev)//ridisegno il display unicamente se il dato dell'angolo cambia (evito flashamenti )
   {
     valoreangolocorrettoPrev = payload.num_sent;
+     angprint = payload.num_sent;
+     angstamp = angprint/100;
     lcd.setCursor(0, 0);
     lcd.print("    Angolo:     ");
     lcd.setCursor(10, 1);
@@ -328,28 +327,9 @@ void display_angolo() {
     lcd.setCursor(0, 1);
     lcd.print("          ");
     lcd.setCursor(1, 1);
-    lcd.print(payload.num_sent);
-  }
-
-}
-
-void increase_counter(size_t id) {                            // on every cycle it increases all the counters ecxcept that of the node it just read
-  for (size_t ii = 0; ii < N_rec; ii++) {
-    counter[ii]++;
-  }
-  counter[id]--;
-}
-
-
-void fix_values() {                                           // if the couter reach the max number of fails setted with Nnosignal variable, data.num_sent will be setted to 8888
-  for (size_t ii = 0; ii < N_rec; ii++) {
-    if (counter[ii] >= Nnosignal) {
-      data[ii].num_sent = dummy_val;
-      counter[ii] = 0;
-    }
+    lcd.print(angstamp);
   }
 }
-
 
 void ser() {
   Serial.print("num_sent ");
@@ -360,6 +340,7 @@ void ser() {
   Serial.print(payload.OffsetReq);
   Serial.print("     VO ");
   Serial.print(payload.VO);
+  Serial.print("Counter: ");
+  Serial.print(counter);
   Serial.println();
-
 }
