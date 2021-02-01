@@ -127,10 +127,10 @@ void loop(void) {
 
     //    if (header.from_node == 05) {                      // if payload came from node_05 (encoder) i need to check for Offset
     if ((payload.OffsetReq == 1) && (payload.VO = 9999) && (y == 1)) {     // if Offset is request i start the Offset task
-
+      raspy(); // per michi
 
       // ROUTINE INSERIMENTO DA TERMINALE  ////////////////////////////////////////////////////////////////////////////////////
-      Serial.println("inserire offset da terminale");
+      // Serial.println("inserire offset da terminale"); tolgo per michi
       idx = 0;
       while (1) {
         if ( Serial.available() ) {
@@ -142,9 +142,11 @@ void loop(void) {
       }
       caratteri[idx] = 0x00; // metto il terminatore di fine stringa al posto giusto
       val = atoi(caratteri);
-      Serial.print("valore registrato ");
-      Serial.println(val);
+      // Serial.print("valore registrato ");  //tolgo per michi
+      // Serial.println(val);                  // tolgo per michi
       // ROUTINE INSERIMENTO DA TERMINALE  ////////////////////////////////////////////////////////////////////////////////////
+
+
       payload.OffsetReq = 0;                                                // reset the Offset request
       payload.VO = val;                                                     // assign offset value to payload
       RF24NetworkHeader header5(05);                                        // define encoder network address
@@ -160,10 +162,10 @@ void loop(void) {
       data[node_id - 1].num_sent = payload.num_sent;         // so i store readed values in data.num_sent ( this is comparator's readed value from slave)
       data[node_id - 1].control = payload.control;           // update data.control to new value received  (this is the counter sent from slave that increase on every sending)
       counter[node_id - 1] = 0;                              // reset couter of the node i readed in this cycle.
-      
+
     } else {
       //data[node_id - 1].num_sent = dummy_val;                // if control is not increasing the slave is not alive so i haven't a valid num_sent, therefore i set num_sent as 8888
-      counter[node_id - 1] *=1;                                                       // A valid data is included in a range from 0 to 1360 that is the values readed from Mitutoyo comparator (0-1360 cent)
+      counter[node_id - 1] *= 1;                                                      // A valid data is included in a range from 0 to 1360 that is the values readed from Mitutoyo comparator (0-1360 cent)
     }
     increase_counter(node_id - 1);                           // on every cycle it increases all the counters ecxcept that of the node it just read
     fix_values();                                            // if the couter reach the max number of fails setted with Nnosignal variable, data.num_sent will be setted to 8888
