@@ -42,7 +42,7 @@ const uint16_t other_node = 00;       // Address of the other node in Octal form
 struct payload_t {                  // Structure of our payload
   long num_sent;
   int control;
-  int OffsetReq = 1;
+  int OffsetReq = 5;
   int VO = 9999;
 };
 payload_t pl;
@@ -97,7 +97,7 @@ void loop() {
 
   } else {                                                          // altrimenti se il VO è ancora a 9999
     encoderValue = 0;                                               // azzero la lettura dell'encoder in modo da partire solo con il valore di offset impostato al prossimo ciclo
-    pl.OffsetReq = 1;                                               // resta attiva la richiesta di offset
+    pl.OffsetReq = 5;                                               // resta attiva la richiesta di offset
     pl.control = pl.control + 1;
     if (pl.control > 10000) {
       pl.control = 0;

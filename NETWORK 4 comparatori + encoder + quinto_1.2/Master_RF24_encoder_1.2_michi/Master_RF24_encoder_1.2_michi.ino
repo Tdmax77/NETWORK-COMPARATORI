@@ -56,12 +56,12 @@ RF24 radio(9/*CE*/, 10/*CSN*/);             // Coto and Kren (7,8)  RF-NANO with
 
 RF24Network network(radio);     // Network uses that radio
 const uint16_t this_node = 00;  // Address of our node in Octal format ( 04,031, etc)   this is the master (raspy display)
-const uint16_t node_1 = 01;     // Address of the other node in Octal format            this is COMP_1
-const uint16_t node_2 = 02;     // Address of the other node in Octal format            this is COMP_2
-const uint16_t node_3 = 03;     // Address of the other node in Octal format            this is COMP_3
-const uint16_t node_4 = 04;     // Address of the other node in Octal format            this is COMP_4
-const uint16_t node_5 = 05;     // Address of the encoder node in Octal format          this is ENCODER
-const uint16_t node_6 = 06;     // Address of the encoder node in Octal format          this is PRESSURE SENSOR
+const uint16_t node_1 = 01;     // Address of the other node in Octal format            this is CHANNEL 1 usually COMP_1
+const uint16_t node_2 = 02;     // Address of the other node in Octal format            this is CHANNEL 2 usually COMP_2
+const uint16_t node_3 = 03;     // Address of the other node in Octal format            this is CHANNEL 3 usually COMP_3
+const uint16_t node_4 = 04;     // Address of the other node in Octal format            this is CHANNEL 4 usually COMP_4
+const uint16_t node_5 = 05;     // Address of the encoder node in Octal format          this is CHANNEL 5 usually ENCODER
+const uint16_t node_6 = 06;     // Address of the encoder node in Octal format          this is CHANNEL 6 usually PRESSURE SENSOR
 
 struct payload_t {              // Structure of  payload received from slaves
   long num_sent;                // this is the data readed from COMP, it is the value readed from Mitutoyo Comparator
@@ -72,7 +72,7 @@ struct payload_t {              // Structure of  payload received from slaves
 payload_t payload;
 
 const int N_rec (6);      // define number of slaves (receiver = 4 COMP + 1 ENCODER)
-int dummy_val (8888);     // define a value that will be printed if COMP fails
+long dummy_val (888888);     // define a value that will be printed if COMP fails
 payload_t data[N_rec];    // create an array data
 int counter [N_rec];      // Array defined for validation of data (ses main loop)
 int Nnosignal (30);       // number of acceptable failed reads
@@ -125,12 +125,13 @@ void loop(void) {
     network.read(header, &payload, sizeof(payload));         // read the packet netwotk sent for this node
     size_t node_id = header.from_node;                       // create a variable node_id that stores the source of the packet ( who is sending it to me? COMP1 with 01 , COMP2 with 02 and so on..
 
-    //    if (header.from_node == 05) {                      // if payload came from node_05 (encoder) i need to check for Offset
-    if ((payload.OffsetReq == 1) && (payload.VO = 9999) && (y == 1)) {     // if Offset is request i start the Offset task
-      raspy(); // per michi
+
+    if ((payload.OffsetReq != 0)  && (payload.OffsetReq <= 6)  && (payload.VO = 9999) && (y == 1)) {     // if Offset is request i start the Offset task
+      //raspy(); //TOGLIERE PER MICHI
 
       // ROUTINE INSERIMENTO DA TERMINALE  ////////////////////////////////////////////////////////////////////////////////////
-      // Serial.println("inserire offset da terminale"); tolgo per michi
+      Serial.print("inserire offset da terminale per il canale: "); //TOGLIERE PER MICHI
+      Serial.println (payload.OffsetReq); //TOGLIERE PER MICHI
       idx = 0;
       while (1) {
         if ( Serial.available() ) {
@@ -142,16 +143,77 @@ void loop(void) {
       }
       caratteri[idx] = 0x00; // metto il terminatore di fine stringa al posto giusto
       val = atoi(caratteri);
-      // Serial.print("valore registrato ");  //tolgo per michi
-      // Serial.println(val);                  // tolgo per michi
+      Serial.print("valore registrato ");  //tolgo per michi
+      Serial.println(val);                  // tolgo per michi
       // ROUTINE INSERIMENTO DA TERMINALE  ////////////////////////////////////////////////////////////////////////////////////
 
 
-      payload.OffsetReq = 0;                                                // reset the Offset request
+      //   payload.OffsetReq = 0;                                                // reset the Offset request
       payload.VO = val;                                                     // assign offset value to payload
-      RF24NetworkHeader header5(05);                                        // define encoder network address
-      network.write(header5, &payload, sizeof(payload));                    // send payload to encoder
-      delay(100);                                                           // little delay
+      Serial.print("offset req ");  //tolgo per michi
+      Serial.println(payload.OffsetReq);                  // tolgo per michi
+      //int a = payload.OffsetReq;
+      delay(200);
+      switch (payload.OffsetReq) {
+
+      Serial.println("sono nello switch");                  // tolgo per michi
+        case 0:
+        Serial.println("sono nel 0");                  // tolgo per michi
+          break;
+        case 1:
+        Serial.println("sono nel 1");                  // tolgo per michi
+          RF24NetworkHeader header1(01);                                        // define encoder network address
+          network.write(header1, &payload, sizeof(payload));                    // send payload to encoder
+          Serial.print (" ho scritto ");
+          Serial.print (val);
+          Serial.print (" al nodo ");
+          Serial.println (header.to_node);
+          break;
+        case 2:
+          RF24NetworkHeader header2(02);                                        // define encoder network address
+          network.write(header2, &payload, sizeof(payload));                    // send payload to encoder
+          Serial.print (" ho scritto ");
+          Serial.print (val);
+          Serial.print (" al nodo ");
+          Serial.println (header.to_node);
+          break;
+        case 3:
+          RF24NetworkHeader header3(03);                                        // define encoder network address
+          network.write(header3, &payload, sizeof(payload));                    // send payload to encoder
+          Serial.print (" ho scritto ");
+          Serial.print (val);
+          Serial.print (" al nodo ");
+          Serial.println (header.to_node);
+          break;
+        case 4:
+          RF24NetworkHeader header4(04);                                        // define encoder network address
+          network.write(header4, &payload, sizeof(payload));                    // send payload to encoder
+          Serial.print (" ho scritto ");
+          Serial.print (val);
+          Serial.print (" al nodo ");
+          Serial.println (header.to_node);
+          break;
+        case 5:
+        Serial.println("sono nel 5");                  // tolgo per michi
+          RF24NetworkHeader header5(05);                                        // define encoder network address
+          network.write(header5, &payload, sizeof(payload));                    // send payload to encoder
+          Serial.print (" ho scritto ");
+          Serial.print (val);
+          Serial.print (" al nodo ");
+          Serial.println (header.to_node);
+          break;
+        case 6:
+          RF24NetworkHeader header6(06);                                        // define encoder network address
+          network.write(header6, &payload, sizeof(payload));                    // send payload to encoder
+          break;
+      }
+      Serial.println (" sono qua");
+      payload.OffsetReq = 0;                                                // reset the Offset request
+      //      Serial.print (" ho scritto ");
+      //      Serial.print (val);
+      //     Serial.print (" al nodo ");
+      //      Serial.println (header.to_node);
+      delay(200);                                                           // little delay
       tempo = millis();                                                     // set variable for y status
       y = 0;                                                                // put y to 0
 
