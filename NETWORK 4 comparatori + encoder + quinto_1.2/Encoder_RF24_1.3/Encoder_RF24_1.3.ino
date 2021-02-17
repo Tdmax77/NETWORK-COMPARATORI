@@ -7,7 +7,7 @@
      DEVO INSERIRE IL NUMERO CORRETTO DEL COMPARATORE E SE NECESSARIO DEL NODO 0
 
      Per lo schema dei collegamenti dell'arduino nano al comparatore vedi schema
-
+ Rel. 1.3
 
 
 */
@@ -37,13 +37,13 @@ int lastLSB = 0;
 // variabili network *********************************************
 RF24 radio(9, 10);     // RF_NANO radio (pin fissi cablati sulla scheda)
 RF24Network network(radio);          // Network uses that radio
-const uint16_t this_node = 02;        // Address of our node in Octal format <<-- INSERIRE IL NUMERO DEL COMPARATORE
+const uint16_t this_node = 05;        // Address of our node in Octal format <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<-- INSERIRE IL NUMERO DEL COMPARATORE
 const uint16_t other_node = 00;       // Address of the other node in Octal format
 struct payload_t {                  // Structure of our payload
   long num_sent;
   int control;
-  int OffsetReq = 2;
-  int VO = 9999;
+  int OffsetReq = 5;                                                      //  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< -- INSERIRE NUMERO DEL CANALE 
+  int  VO = 9999;
 };
 payload_t pl;
 
@@ -77,11 +77,11 @@ void loop() {
 
   RF24NetworkHeader header(00);                       // imposto indirizzo del master
   network.write(header, &pl, sizeof(pl));             // scrivo al master che OffsetReq = 1 e VO = 9999
-  RF24NetworkHeader header2(02);                      // imposto idirizzo di questo nodo
-  network.read(header2, &pl, sizeof(pl));             // leggo le variabili del payload
+  RF24NetworkHeader header5(05);                      // imposto idirizzo di questo nodo <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  network.read(header5, &pl, sizeof(pl));             // leggo le variabili del payload  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
   VOff = pl.VO;
 
-  if  ((VOff != 9999)) {                                             // Se Voff è stato impostato e risulta diverso da 9999
+  if  ((VOff != 999999)) {                                             // Se Voff è stato impostato e risulta diverso da 9999
     double auxval = (encoderValue * risoluzioneEncoder) + pl.VO;     // sommo il valore dell'OFFset VO alla lettura
     double mod = fmod(auxval, 360.0);                                // se il dato supera i 360 ritorno a zero    
     if (mod < 0.0) {
@@ -97,7 +97,7 @@ void loop() {
 
   } else {                                                          // altrimenti se il VO è ancora a 9999
     encoderValue = 0;                                               // azzero la lettura dell'encoder in modo da partire solo con il valore di offset impostato al prossimo ciclo
-    pl.OffsetReq = 2;                                               // resta attiva la richiesta di offset
+    pl.OffsetReq = 5;                                               // resta attiva la richiesta di offset  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     pl.control = pl.control + 1;
     if (pl.control > 10000) {
       pl.control = 0;
