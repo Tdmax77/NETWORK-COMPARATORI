@@ -1,12 +1,4 @@
-/*  Prima prova di trasmissione su network
-     Leggo il dato del comparatore this node
-     lo spedisco al nodo 0 che sarà un arduino collegato al raspberry
-     posso usare DEBUG per vedere cosa trasmetto
-     posso usare TASTIERA per modificare il dato da tastiera a puro scopo test
-
-     DEVO INSERIRE IL NUMERO CORRETTO DEL COMPARATORE E SE NECESSARIO DEL NODO 0
-
-     Per lo schema dei collegamenti dell'arduino nano al comparatore vedi schema
+/*  
 
 
 
@@ -33,9 +25,9 @@ int sign;
 // variabili per mitutoyo ****************************************
 
 // variabili network *********************************************
-RF24 radio(10, 9);     // RF_NANO radio (pin fissi cablati sulla scheda)
+RF24 radio(9,10);     // RF_NANO radio (pin fissi cablati sulla scheda)
 RF24Network network(radio);          // Network uses that radio
-const uint16_t this_node = 01;        // Address of our node in Octal format <<-- INSERIRE IL NUMERO DEL COMPARATORE
+const uint16_t this_node = 04;        // Address of our node in Octal format <<-- INSERIRE IL NUMERO DEL COMPARATORE
 const uint16_t other_node = 00;       // Address of the other node in Octal format
 struct payload_t {                  // Structure of our payload
   long num_sent;
@@ -65,7 +57,7 @@ void setup() {
   // setting per network *****************************************
   SPI.begin();
   radio.begin();
-  network.begin(/*channel*/ 90, /*node address*/ this_node);
+  network.begin(/*channel*/ 85, /*node address*/ this_node);  //canale 80 arancione  canale 85 blu  canale 90 nero
   // setting per network *****************************************
 
   Serial.begin(38400);
