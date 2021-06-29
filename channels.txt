@@ -1,0 +1,27 @@
+Spostando a 110 il canale siamo fuori dalla frequenza WIFI
+
+#define MY_RF24_CHANNEL X, where X is the number to the left below
+
+0 = 2400 Mhz (RF24 channel 1)
+1 = 2401 Mhz (RF24 channel 2)
+76 = 2476 Mhz (RF24 channel 77) standard
+83 = 2483 Mhz (RF24 channel 84)
+124 = 2524 Mhz (RF24 channel 125)
+125 = 2525 Mhz (RF24 channel 126)
+
+Below is the Control Channel for WiFi and frequency.
+
+1	2412	2401–2423	Yes	Yes	Yes
+2	2417	2406–2428	Yes	Yes	Yes
+3	2422	2411–2433	Yes	Yes	Yes
+4	2427	2416–2438	Yes	Yes	Yes
+5	2432	2421–2443	Yes	Yes	Yes
+6	2437	2426–2448	Yes	Yes	Yes
+7	2442	2431–2453	Yes	Yes	Yes
+8	2447	2436–2458	Yes	Yes	Yes
+9	2452	2441–2463	Yes	Yes	Yes
+10	2457	2446–2468	Yes	Yes	Yes
+11	2462	2451–2473	Yes	Yes	Yes
+12	2467	2456–2478	NoB except CAN	Yes	Yes
+13	2472	2461–2483	NoB	Yes	Yes
+14	2484	2473–2495	No	11b onlyC	No
