@@ -15,9 +15,14 @@
 
 
   Rel. 1.3
-
+  29 06 2021
+  nuova release 14 : usare solamente librerie rf24 1.3.3 e rf24network 10.0.15
+  velocità di trasmissione ridotta a 250K 
+  canale spostato da 80 a 110 per evitare interferenze con WIFI
 
 */
+
+int vers = 14;  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< aggiornare ad ogni cambiamento!!!!
 
 #include <RF24Network.h>
 #include <RF24.h>
@@ -78,6 +83,8 @@ void setup() {
 
   Serial.begin(38400);
   radio.printDetails();
+  Serial.print("Version ");
+  Serial.println(vers);
   delay(5000);
 
 }

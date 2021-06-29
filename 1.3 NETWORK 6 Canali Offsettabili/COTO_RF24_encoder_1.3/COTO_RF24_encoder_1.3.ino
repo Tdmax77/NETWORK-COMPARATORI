@@ -186,8 +186,15 @@ while ( network.available() ) {
   network.read(header, &payload, sizeof(payload));         // read the packet netwotk sent for this node
   size_t node_id = header.from_node;                       // create a variable node_id that stores the source of the packet ( who is sending it to me? COMP1 with 01 , COMP2 with 02 and so on..
 
+Serial.print(" y= ");
+Serial.println(y);
+Serial.print(" offset req= ");
+Serial.println(payload.OffsetReq);
+Serial.print(" payload.VO = ");
+Serial.println(payload.VO);
 
-  if ((payload.OffsetReq == 5) && (payload.VO = 9999) && (y == 1)) {     // if Offset is request i start the Offset task   <<<<<<<<< -- set value of channel
+
+  if ((payload.OffsetReq == 5) && (payload.VO == 9999) && (y == 1)) {     // if Offset is request i start the Offset task   <<<<<<<<< -- set value of channel
     testo_richiesta_inserimento_offset();                                // ask for offset
     while (digitalRead(buttonOkPin) == LOW )                             // insert value and wait for OK button pressed
     {
@@ -195,13 +202,19 @@ while ( network.available() ) {
     }
     payload.OffsetReq = 0;                                                // reset the Offset request
     payload.VO = var;                                                     // assign offset value to payload
+Serial.print(" offset req dopo off= ");
+Serial.println(payload.OffsetReq);
+Serial.print(" payload.VO dopo off= ");
+Serial.println(payload.VO);    
+    
     RF24NetworkHeader header5(05);                                        // define encoder network address
     network.write(header5, &payload, sizeof(payload));                    // send payload to encoder
-    delay(100);                                                           // little delay
+    delay(500);                                                           // little delay
     tempo = millis();                                                     // set variable for y status
     y = 0;                                                                // put y to 0
   }
-
+Serial.print("Valore trasmesso di offset ");
+Serial.println(var);
   if (data[node_id - 1].control != payload.control) {      // if control readed from network is different from control stored i assume that the packet is new, so the slave is alive and the data is valid
     data[node_id - 1].num_sent = payload.num_sent;         // so i store readed values in data.num_sent ( this is comparator's readed value from slave)
     data[node_id - 1].control = payload.control;           // update data.control to new value received  (this is the counter sent from slave that increase on every sending)
@@ -214,9 +227,9 @@ while ( network.available() ) {
   fix_values();
 
 
-  Serial.print (node_id - 1);
-  Serial.print(" ");
-  Serial.println (counter[node_id - 1]);
+  //Serial.print (node_id - 1);
+  //Serial.print(" ");
+  //Serial.println (counter[node_id - 1]);
   if (counter[node_id - 1] >= Nnosignal) {                // if counter reach Nnosignal
     display_no_conn();                        // display no conn for 2 seconds
     delay(2000);

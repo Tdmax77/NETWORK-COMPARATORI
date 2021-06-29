@@ -22,8 +22,17 @@
 
    Powered by Massimo Riosa
    Release 1.1
+
+   
+  Rel. 1.3
+  29 06 2021
+  nuova release 14 : usare solamente librerie rf24 1.3.3 e rf24network 10.0.15
+  velocità di trasmissione ridotta a 250K 
+  canale spostato da 80 a 110 per evitare interferenze con WIFI
+
 */
 
+int vers = 14;   <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< AGGIORNARE 
 #define DEBUG
 
 #include <RF24Network.h>
@@ -104,6 +113,8 @@ void setup(void)
   radio.begin();                                             // initialize radio module
   radio.setDataRate(RF24_250KBPS);
   radio.printDetails();
+  Serial.print("Version ");
+  Serial.println(vers);
 
   network.begin(/*channel*/ 110, /*node address*/ this_node); // start network
   //radio.printDetails();
@@ -119,7 +130,9 @@ void setup(void)
   lcd.setCursor(0, 0);
   lcd.print("Crankshaft");
   lcd.setCursor(0, 1);
-  lcd.print("reader V1.2");
+  lcd.print("reader V=");
+  lcd.setCursor(10,1);
+  lcd.print(vers);
   delay(3000);
   lcd.clear();
 
